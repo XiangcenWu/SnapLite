@@ -1,9 +1,9 @@
 ﻿cmake_minimum_required(VERSION 3.16)
-project(QtSnapLite LANGUAGES CXX)
+project(SnapLite LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(VTK_DIR C:\\VTK-9.6.0\\build)
+
 
 
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
@@ -20,7 +20,7 @@ find_package(VTK REQUIRED COMPONENTS
 
 set(CMAKE_AUTOMOC ON)
 
-add_executable(QtSnapLite
+add_executable(SnapLite
     src/main.cpp
     src/ui/MainWindow.h
     src/ui/MainWindow.cpp
@@ -32,10 +32,10 @@ add_executable(QtSnapLite
     src/rendering/VolumeRenderPlaceholder.cpp
 )
 
-target_include_directories(QtSnapLite PRIVATE src)
+target_include_directories(SnapLite PRIVATE src)
 
-target_link_libraries(QtSnapLite PRIVATE Qt6::Widgets ${VTK_LIBRARIES})
+target_link_libraries(SnapLite PRIVATE Qt6::Widgets ${VTK_LIBRARIES})
 vtk_module_autoinit(
-    TARGETS QtSnapLite
+    TARGETS SnapLite
     MODULES ${VTK_LIBRARIES}
 )

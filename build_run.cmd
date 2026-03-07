@@ -25,7 +25,7 @@ set "BUILD_DIR=%ROOT%\build"
 set "APP=QtSnapLite.exe"
 
 echo [1/3] Configuring CMake...
-cmake -S "%ROOT%" -B "%BUILD_DIR%"
+cmake -S "%ROOT%" -B "%BUILD_DIR%" -DCMAKE_PREFIX_PATH="C:\\VTK-9.6.0\\build"
 if errorlevel 1 exit /b 1
 
 echo [2/3] Building %CFG%...
