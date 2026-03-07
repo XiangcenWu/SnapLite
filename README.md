@@ -1,6 +1,6 @@
-# QtSnapLite
+# SnapLite
 
-QtSnapLite is a lightweight Qt + VTK desktop viewer for 3D medical volumes.
+SnapLite is a lightweight Qt + VTK desktop viewer for 3D medical volumes.
 It provides:
 
 - Axial, coronal, and sagittal slice views with linked crosshair navigation
@@ -44,7 +44,7 @@ cmake --build build --config Debug
 ## Run
 
 ```powershell
-.\build\Debug\QtSnapLite.exe
+.\build\Debug\SnapLite.exe
 ```
 
 ## Usage
