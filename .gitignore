@@ -3,3 +3,4 @@ build
 build_run.cmd
 .DS_Store
 run.sh
+.codex*
