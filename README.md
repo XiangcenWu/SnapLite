@@ -53,7 +53,7 @@ Packaging is configured for Windows only and produces a ZIP archive that is read
 to upload to a GitHub Release.
 
 ```powershell
-cmake -S . -B build -DCMAKE_PREFIX_PATH="C:/Qt/6.10.2/msvc2022_64;C:/VTK-9.6.0/build"
+cmake -S . -B build -DCMAKE_PREFIX_PATH="<QtDir>;<VtkDir>"
 cmake --build build --config Release --target package
 ```
 
