@@ -11,7 +11,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets)
+# qt_generate_deploy_app_script() 属于 Qt6::Core 提供的命令
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets)
 find_package(VTK REQUIRED COMPONENTS
     CommonCore
     CommonDataModel
@@ -38,7 +39,15 @@ set(SNAPLITE_SOURCES
 add_executable(SnapLite ${SNAPLITE_SOURCES})
 
 if(APPLE)
-    set_target_properties(SnapLite PROPERTIES MACOSX_BUNDLE TRUE)
+    set_target_properties(SnapLite PROPERTIES
+        MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_BUNDLE_NAME "SnapLite"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "com.xiangcen.snaplite"
+        MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
+        MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION}
+        INSTALL_RPATH "@executable_path/../Frameworks"
+        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.xiangcen.snaplite"
+    )
 endif()
 
 target_include_directories(SnapLite PRIVATE src)
@@ -51,65 +60,78 @@ vtk_module_autoinit(
 
 include(GNUInstallDirs)
 
-if(WIN32)
+if(APPLE)
+    set(SNAPLITE_INSTALL_BUNDLE_DIR ".")
+    set(SNAPLITE_INSTALL_RUNTIME_DIR ${CMAKE_INSTALL_BINDIR})
+elseif(WIN32)
+    set(SNAPLITE_INSTALL_BUNDLE_DIR ".")
     set(SNAPLITE_INSTALL_RUNTIME_DIR ".")
-    set(SNAPLITE_RUNTIME_SEARCH_DIRS
-        $<TARGET_FILE_DIR:Qt6::Core>
-        $<TARGET_FILE_DIR:Qt6::Widgets>
-    )
-
-    foreach(vtk_module IN LISTS VTK_LIBRARIES)
-        list(APPEND SNAPLITE_RUNTIME_SEARCH_DIRS $<TARGET_FILE_DIR:${vtk_module}>)
-    endforeach()
-
-    list(REMOVE_DUPLICATES SNAPLITE_RUNTIME_SEARCH_DIRS)
 else()
+    set(SNAPLITE_INSTALL_BUNDLE_DIR ${CMAKE_INSTALL_BINDIR})
     set(SNAPLITE_INSTALL_RUNTIME_DIR ${CMAKE_INSTALL_BINDIR})
 endif()
 
-if(WIN32)
-    install(TARGETS SnapLite
-        RUNTIME_DEPENDENCIES
-            DIRECTORIES ${SNAPLITE_RUNTIME_SEARCH_DIRS}
-            PRE_EXCLUDE_REGEXES
-                "api-ms-win-.*"
-                "ext-ms-.*"
-            POST_EXCLUDE_REGEXES
-                ".*/[Ss][Yy][Ss][Tt][Ee][Mm]32/.*\\.dll"
-                ".*/[Ss]ys[Ww][Oo][Ww]64/.*\\.dll"
-        BUNDLE DESTINATION .
-        RUNTIME DESTINATION ${SNAPLITE_INSTALL_RUNTIME_DIR}
-    )
+install(TARGETS SnapLite
+    BUNDLE DESTINATION ${SNAPLITE_INSTALL_BUNDLE_DIR}
+    RUNTIME DESTINATION ${SNAPLITE_INSTALL_RUNTIME_DIR}
+)
 
-    if(TARGET Qt6::QWindowsIntegrationPlugin)
-        install(IMPORTED_RUNTIME_ARTIFACTS Qt6::QWindowsIntegrationPlugin
-            DESTINATION platforms
+# 让 Qt 在 install/package 阶段部署依赖
+qt_generate_deploy_app_script(
+    TARGET SnapLite
+    OUTPUT_SCRIPT SNAPLITE_DEPLOY_SCRIPT
+    NO_UNSUPPORTED_PLATFORM_ERROR
+)
+
+install(SCRIPT ${SNAPLITE_DEPLOY_SCRIPT})
+
+# 关键：部署完成后重新签名
+# 这里只用 "-"，表示本机可运行的 ad-hoc 签名，不需要开发者证书
+if(APPLE)
+    install(CODE "
+        set(APP_PATH \"\${CMAKE_INSTALL_PREFIX}/SnapLite.app\")
+
+        message(STATUS \"Re-signing \${APP_PATH} with ad-hoc signature\")
+
+        execute_process(
+            COMMAND /usr/bin/codesign --force --deep --sign - \"\${APP_PATH}\"
+            RESULT_VARIABLE sign_result
+            COMMAND_ECHO STDOUT
         )
-    endif()
+        if(NOT sign_result EQUAL 0)
+            message(FATAL_ERROR \"codesign failed for \${APP_PATH}\")
+        endif()
 
-    if(TARGET Qt6::QModernWindowsStylePlugin)
-        install(IMPORTED_RUNTIME_ARTIFACTS Qt6::QModernWindowsStylePlugin
-            DESTINATION styles
+        execute_process(
+            COMMAND /usr/bin/codesign --verify --deep --strict --verbose=4 \"\${APP_PATH}\"
+            RESULT_VARIABLE verify_result
+            COMMAND_ECHO STDOUT
         )
-    endif()
-
-    install(FILES README.md DESTINATION .)
-
-    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-        set(SNAPLITE_PACKAGE_ARCH x64)
-    else()
-        set(SNAPLITE_PACKAGE_ARCH x86)
-    endif()
-
-    set(CPACK_GENERATOR "ZIP")
-    set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY ON)
-    set(CPACK_MONOLITHIC_INSTALL ON)
-    set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION}-windows-${SNAPLITE_PACKAGE_ARCH}")
-    set(CPACK_PACKAGE_INSTALL_DIRECTORY "${PROJECT_NAME}")
-    include(CPack)
-else()
-    install(TARGETS SnapLite
-        BUNDLE DESTINATION .
-        RUNTIME DESTINATION ${SNAPLITE_INSTALL_RUNTIME_DIR}
-    )
+        if(NOT verify_result EQUAL 0)
+            message(FATAL_ERROR \"codesign verify failed for \${APP_PATH}\")
+        endif()
+    ")
 endif()
+
+set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
+set(CPACK_PACKAGE_VENDOR "SnapLite")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_MONOLITHIC_INSTALL ON)
+
+if(APPLE)
+    set(CPACK_GENERATOR "DragNDrop")
+    set(CPACK_DMG_VOLUME_NAME "${PROJECT_NAME} ${PROJECT_VERSION}")
+    set(CPACK_SYSTEM_NAME "macos-${CMAKE_SYSTEM_PROCESSOR}")
+elseif(WIN32)
+    set(CPACK_GENERATOR "ZIP")
+    set(CPACK_SYSTEM_NAME "windows-${CMAKE_SYSTEM_PROCESSOR}")
+else()
+    set(CPACK_GENERATOR "TGZ")
+    set(CPACK_SYSTEM_NAME "${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
+endif()
+
+set(CPACK_PACKAGE_FILE_NAME
+    "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CPACK_SYSTEM_NAME}"
+)
+
+include(CPack)
