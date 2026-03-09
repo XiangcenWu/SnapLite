@@ -37,7 +37,7 @@ CMakeLists.txt
 3. Configure and build:
 
 ```powershell
-cmake -S . -B build -DCMAKE_PREFIX_PATH="C:/Qt/6.10.2/msvc2022_64;C:/VTK-9.6.0/build"
+cmake -S . -B build -DCMAKE_PREFIX_PATH="<QtDir>;<VtkDir>"
 cmake --build build --config Debug
 ```
 
