@@ -11,9 +11,9 @@ It provides:
 ## Tech Stack
 
 - C++17
-- CMake (3.16+)
+- CMake (3.21+)
 - Qt 6 Widgets
-- VTK (configured for VTK 9.6 in `CMakeLists.txt`)
+- VTK (tested with VTK 9.6)
 
 ## Project Structure
 
@@ -33,11 +33,11 @@ CMakeLists.txt
 ## Build
 
 1. Install Qt 6 and VTK.
-2. Update `VTK_DIR` in `CMakeLists.txt` to your local VTK CMake path.
+2. Point CMake at your Qt / VTK package locations.
 3. Configure and build:
 
 ```powershell
-cmake -S . -B build
+cmake -S . -B build -DCMAKE_PREFIX_PATH="C:/Qt/6.10.2/msvc2022_64;C:/VTK-9.6.0/build"
 cmake --build build --config Debug
 ```
 
@@ -45,6 +45,22 @@ cmake --build build --config Debug
 
 ```powershell
 .\build\Debug\SnapLite.exe
+```
+
+## Package for GitHub Releases on Windows
+
+Packaging is configured for Windows only and produces a ZIP archive that is ready
+to upload to a GitHub Release.
+
+```powershell
+cmake -S . -B build -DCMAKE_PREFIX_PATH="C:/Qt/6.10.2/msvc2022_64;C:/VTK-9.6.0/build"
+cmake --build build --config Release --target package
+```
+
+The generated archive will be placed in `build/` with a name like:
+
+```text
+SnapLite-0.1.0-windows-x64.zip
 ```
 
 ## Usage

@@ -1,6 +1,6 @@
 build
 .vs
-build_run.cmd
+*.cmd
 .DS_Store
 run.sh
 .codex*
